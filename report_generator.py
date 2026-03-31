@@ -29,6 +29,55 @@ def _shade_cell(cell, hex_color='D9E1F2'):
     tcPr.append(shd)
 
 
+def _add_coverage_with_comp3(doc, main_tbl, comp3_tbl, title=None):
+    """COVERAGE表にCover3内訳行を埋め込んだ1つのテーブルを生成"""
+    if main_tbl is None or len(main_tbl) == 0:
+        if title:
+            doc.add_paragraph(f'{title}：該当データなし').runs[0].italic = True
+        return
+
+    if title:
+        p = doc.add_paragraph()
+        run = p.add_run(title)
+        run.bold = True
+
+    table = doc.add_table(rows=1, cols=3)
+    table.style = 'Table Grid'
+
+    # ヘッダー行
+    hdr = table.rows[0].cells
+    for i, name in enumerate(['COVERAGE', '割合（実数）', '備考']):
+        hdr[i].text = name
+        _shade_cell(hdr[i], 'D9E1F2')
+    _set_row_bold(table.rows[0])
+
+    # comp3をdict化（COMPONENTがキー）
+    comp3_rows = []
+    if comp3_tbl is not None and len(comp3_tbl) > 0:
+        for _, r in comp3_tbl.iterrows():
+            comp3_rows.append(r)
+
+    for _, row in main_tbl.iterrows():
+        cov_val = str(row.iloc[0]) if not pd.isna(row.iloc[0]) else ''
+        cells = table.add_row().cells
+        cells[0].text = cov_val
+        cells[1].text = str(row.iloc[1]) if not pd.isna(row.iloc[1]) else ''
+        cells[2].text = str(row.iloc[2]) if not pd.isna(row.iloc[2]) else ''
+
+        # COVERAGE = "3" の直後にCOMPONENT内訳行を挿入
+        if cov_val == '3' and comp3_rows:
+            for cr in comp3_rows:
+                sub_cells = table.add_row().cells
+                comp_name = str(cr.iloc[0]) if not pd.isna(cr.iloc[0]) else ''
+                sub_cells[0].text = f'　└ {comp_name}'
+                sub_cells[1].text = str(cr.iloc[1]) if not pd.isna(cr.iloc[1]) else ''
+                sub_cells[2].text = str(cr.iloc[2]) if not pd.isna(cr.iloc[2]) else ''
+                for cell in sub_cells:
+                    _shade_cell(cell, 'E2EFDA')
+
+    doc.add_paragraph()
+
+
 def _add_table(doc, df, title=None, header_color='D9E1F2', indent_level=0):
     """DataFrameをWordテーブルとして追記する"""
     if df is None or len(df) == 0:
@@ -93,9 +142,7 @@ def generate_word_report(df):
     doc.add_heading('1-2. Pass Defense', 2)
 
     cov, comp3 = az.analyze_coverage(df_n)
-    _add_table(doc, cov, '① パスカバー割合（COVERAGE）')
-    if len(comp3) > 0:
-        _add_table(doc, comp3, '　▼ Cover 3 内訳（COMPONENT）', header_color='E2EFDA', indent_level=1)
+    _add_coverage_with_comp3(doc, cov, comp3, '① パスカバー割合（COVERAGE）')
 
     _add_table(doc, az.analyze_off_form(df_n), '② OFF FORM ごとの割合')
 
@@ -130,10 +177,7 @@ def generate_word_report(df):
         if n == 0:
             doc.add_paragraph('  該当プレーなし')
             continue
-        _add_table(doc, data['coverage'], '② COVERAGE 割合')
-        if len(data['comp3']) > 0:
-            _add_table(doc, data['comp3'], '　▼ Cover 3 内訳（COMPONENT）',
-                       header_color='E2EFDA', indent_level=1)
+        _add_coverage_with_comp3(doc, data['coverage'], data['comp3'], '② COVERAGE 割合')
         pkg = data['packages']
         if len(pkg) > 0:
             _add_table(doc, pkg, '③ よく出るパッケージ（3プレー以上）', header_color='FCE4D6')
@@ -158,9 +202,7 @@ def generate_word_report(df):
     # Pass Defense
     doc.add_heading('3-2. Pass Defense', 2)
     cov, comp3 = az.analyze_coverage(df_r)
-    _add_table(doc, cov, '② COVERAGE 割合')
-    if len(comp3) > 0:
-        _add_table(doc, comp3, '　▼ Cover 3 内訳（COMPONENT）', header_color='E2EFDA', indent_level=1)
+    _add_coverage_with_comp3(doc, cov, comp3, '② COVERAGE 割合')
 
     doc.add_page_break()
 
@@ -176,9 +218,7 @@ def generate_word_report(df):
     _add_table(doc, az.analyze_sign_d(df_2), '① SIGN(D) 割合')
 
     cov, comp3 = az.analyze_coverage(df_2)
-    _add_table(doc, cov, '② COVERAGE 割合')
-    if len(comp3) > 0:
-        _add_table(doc, comp3, '　▼ Cover 3 内訳（COMPONENT）', header_color='E2EFDA', indent_level=1)
+    _add_coverage_with_comp3(doc, cov, comp3, '② COVERAGE 割合')
 
     # ── BytesIO に保存して返す ──
     buf = io.BytesIO()

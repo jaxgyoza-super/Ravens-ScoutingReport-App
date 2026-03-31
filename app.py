@@ -5,6 +5,23 @@ from data_loader import load_data
 from report_generator import generate_word_report
 import analyzer as az
 
+
+def _merge_coverage_df(main_tbl, comp3_tbl):
+    """COVERAGE表にCover3内訳行を埋め込んだ1つのDataFrameを返す"""
+    if main_tbl is None or len(main_tbl) == 0:
+        return main_tbl
+    rows = []
+    for _, row in main_tbl.iterrows():
+        rows.append(row.to_dict())
+        if str(row.iloc[0]) == '3' and comp3_tbl is not None and len(comp3_tbl) > 0:
+            for _, cr in comp3_tbl.iterrows():
+                sub = row.to_dict().copy()
+                sub[main_tbl.columns[0]] = f'　└ {cr.iloc[0]}'
+                sub[main_tbl.columns[1]] = cr.iloc[1]
+                sub[main_tbl.columns[2]] = cr.iloc[2] if len(cr) > 2 else ''
+                rows.append(sub)
+    return pd.DataFrame(rows)
+
 st.set_page_config(
     page_title='スカウティングレポート自動生成',
     page_icon='🏈',
@@ -85,10 +102,7 @@ with tab1:
 
         st.markdown('**① パスカバー割合（COVERAGE）**')
         cov, comp3 = az.analyze_coverage(df_n)
-        st.dataframe(cov, use_container_width=True, hide_index=True)
-        if len(comp3) > 0:
-            st.markdown('　▼ **Cover 3 内訳（COMPONENT）**')
-            st.dataframe(comp3, use_container_width=True, hide_index=True)
+        st.dataframe(_merge_coverage_df(cov, comp3), use_container_width=True, hide_index=True)
 
         st.markdown('**② OFF FORM ごとの割合**')
         form = az.analyze_off_form(df_n)
@@ -119,10 +133,7 @@ with tab2:
                     st.write('該当プレーなし')
                     continue
                 st.markdown('**② COVERAGE 割合**')
-                st.dataframe(data['coverage'], use_container_width=True, hide_index=True)
-                if len(data['comp3']) > 0:
-                    st.markdown('　▼ **Cover 3 内訳（COMPONENT）**')
-                    st.dataframe(data['comp3'], use_container_width=True, hide_index=True)
+                st.dataframe(_merge_coverage_df(data['coverage'], data['comp3']), use_container_width=True, hide_index=True)
                 pkg = data['packages']
                 st.markdown('**③ よく出るパッケージ**')
                 if len(pkg) > 0:
@@ -146,10 +157,7 @@ with tab3:
         st.subheader('3-2. Pass Defense')
         st.markdown('**② COVERAGE 割合**')
         cov_r, comp3_r = az.analyze_coverage(df_r)
-        st.dataframe(cov_r, use_container_width=True, hide_index=True)
-        if len(comp3_r) > 0:
-            st.markdown('　▼ **Cover 3 内訳（COMPONENT）**')
-            st.dataframe(comp3_r, use_container_width=True, hide_index=True)
+        st.dataframe(_merge_coverage_df(cov_r, comp3_r), use_container_width=True, hide_index=True)
 
 # ── Tab 4: 2MIN ─────────────────────────────────────────
 with tab4:
@@ -165,7 +173,4 @@ with tab4:
     with col_c:
         st.markdown('**② COVERAGE 割合**')
         cov_2, comp3_2 = az.analyze_coverage(df_2)
-        st.dataframe(cov_2, use_container_width=True, hide_index=True)
-        if len(comp3_2) > 0:
-            st.markdown('　▼ **Cover 3 内訳（COMPONENT）**')
-            st.dataframe(comp3_2, use_container_width=True, hide_index=True)
+        st.dataframe(_merge_coverage_df(cov_2, comp3_2), use_container_width=True, hide_index=True)
