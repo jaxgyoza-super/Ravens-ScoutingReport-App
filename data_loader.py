@@ -41,8 +41,12 @@ def load_data(uploaded_file):
             return ''
         # 数値で来る場合 (3.0, 33.0 など)
         s = re.sub(r'\.0$', '', s)
-        if s == '33':
+        # Cover 3 に統合するバリエーション
+        if s in ('33', 'ROTE 3', 'ROTE3', '3?'):
             s = '3'
+        # 1FREE 表記ゆれ統一
+        if s == '1FREE':
+            s = '1 FREE'
         return s
 
     df['COVERAGE_NORM'] = df['COVERAGE'].apply(norm_coverage)
