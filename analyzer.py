@@ -180,41 +180,38 @@ def analyze_coverage(df):
     return main_tbl, comp_tbl
 
 
-def analyze_off_form(df):
-    """OFF FORM グルーピング割合テーブル"""
-    total = len(df)
-    if total == 0:
-        return pd.DataFrame(columns=['フォーメーション', '割合（実数）', '備考'])
+def analyze_off_form_coverage(df):
+    """OFF FORMグループごとにCOVERAGE割合をまとめる。
+    戻り値: [(group_name, n, cov_tbl, comp3_tbl), ...]  プレー数降順
+    """
+    if len(df) == 0:
+        return []
 
     df = df.copy()
     df['_GROUP'] = df['OFF_FORM_NORM'].apply(_get_form_group)
 
-    rows = []
-    # 定義済みグループ（順序保持、後でソート）
+    results = []
+
+    # 定義済みグループ
     for grp in DEFINED_GROUPS_ORDER:
         sub = df[df['_GROUP'] == grp]
-        cnt = len(sub)
-        if cnt == 0:
+        n = len(sub)
+        if n == 0:
             continue
-        rows.append({
-            'フォーメーション': grp,
-            '割合（実数）': _pct_str(cnt, total),
-            '備考': _notes(sub) if cnt <= 5 else '',
-        })
+        cov_tbl, comp3_tbl = analyze_coverage(sub)
+        results.append((grp, n, cov_tbl, comp3_tbl))
 
     # 未分類で3プレー以上
     unc = df[df['_GROUP'].isna()]
     for form, sub in unc.groupby('OFF_FORM_NORM'):
-        cnt = len(sub)
-        if cnt >= 3:
-            rows.append({
-                'フォーメーション': f'{form}（その他）',
-                '割合（実数）': _pct_str(cnt, total),
-                '備考': _notes(sub) if cnt <= 5 else '',
-            })
+        n = len(sub)
+        if n >= 3:
+            cov_tbl, comp3_tbl = analyze_coverage(sub)
+            results.append((f'{form}（その他）', n, cov_tbl, comp3_tbl))
 
-    rows.sort(key=lambda r: _extract_count(r['割合（実数）']), reverse=True)
-    return pd.DataFrame(rows)
+    # プレー数降順でソート
+    results.sort(key=lambda x: x[1], reverse=True)
+    return results
 
 
 def analyze_packages(df):

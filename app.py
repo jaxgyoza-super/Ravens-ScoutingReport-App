@@ -104,9 +104,10 @@ with tab1:
         cov, comp3 = az.analyze_coverage(df_n)
         st.dataframe(_merge_coverage_df(cov, comp3), use_container_width=True, hide_index=True)
 
-        st.markdown('**② OFF FORM ごとの割合**')
-        form = az.analyze_off_form(df_n)
-        st.dataframe(form, use_container_width=True, hide_index=True)
+        st.markdown('**② OFF FORM ごとのCOVERAGE割合**')
+        for grp_name, n, cov_tbl, comp3_tbl in az.analyze_off_form_coverage(df_n):
+            st.markdown(f'**{grp_name}**　n={n}')
+            st.dataframe(_merge_coverage_df(cov_tbl, comp3_tbl), use_container_width=True, hide_index=True)
 
 # ── Tab 2: 3rd Situation ─────────────────────────────────
 with tab2:

@@ -144,7 +144,10 @@ def generate_word_report(df):
     cov, comp3 = az.analyze_coverage(df_n)
     _add_coverage_with_comp3(doc, cov, comp3, '① パスカバー割合（COVERAGE）')
 
-    _add_table(doc, az.analyze_off_form(df_n), '② OFF FORM ごとの割合')
+    doc.add_paragraph('② OFF FORM ごとのCOVERAGE割合').runs[0].bold = True
+    for grp_name, n, cov_tbl, comp3_tbl in az.analyze_off_form_coverage(df_n):
+        doc.add_heading(f'　{grp_name}  （n={n}）', 4)
+        _add_coverage_with_comp3(doc, cov_tbl, comp3_tbl)
 
     doc.add_page_break()
 
