@@ -209,8 +209,7 @@ def analyze_off_form_coverage(df):
             cov_tbl, comp3_tbl = analyze_coverage(sub)
             results.append((f'{form}（その他）', n, cov_tbl, comp3_tbl))
 
-    # プレー数降順でソート
-    results.sort(key=lambda x: x[1], reverse=True)
+    # 順番は定義済みグループ順 → その他（ソートしない）
     return results
 
 
