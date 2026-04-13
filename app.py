@@ -926,6 +926,11 @@ components.html("""
     }
   }
   attach();
+
+  // ブラウザ通知パーミッションを事前リクエスト
+  if ('Notification' in window.parent && window.parent.Notification.permission === 'default') {
+    window.parent.Notification.requestPermission();
+  }
 })();
 </script>
 """, height=0)
@@ -1214,6 +1219,7 @@ with col3:
                     )
                     _notify_pc('Ravens Auto Scout Kit', 'Wordファイルの生成が完了しました')
                     st.toast('✅ Wordファイルの生成が完了しました', icon='🏈')
+                    st.session_state['_notify_done'] = True
             except Exception as _e:
                 import traceback as _tb
                 _gen_error = _tb.format_exc()
@@ -1231,6 +1237,31 @@ with col3:
                 st.session_state.pop('_gen_error', None)
                 st.rerun()
         elif is_generated:
+            # ブラウザ通知（生成直後の1回のみ発火）
+            if st.session_state.pop('_notify_done', False):
+                components.html("""
+<script>
+(function() {
+  function fire() {
+    if (!('Notification' in window.parent)) return;
+    if (window.parent.Notification.permission === 'granted') {
+      new window.parent.Notification('Ravens Auto Scout Kit 🏈', {
+        body: 'Wordファイルの生成が完了しました',
+        icon: 'https://em-content.zobj.net/source/google/387/american-football_1f3c8.png'
+      });
+    }
+  }
+  if (!('Notification' in window.parent)) return;
+  if (window.parent.Notification.permission === 'default') {
+    window.parent.Notification.requestPermission().then(function(p) {
+      if (p === 'granted') fire();
+    });
+  } else {
+    fire();
+  }
+})();
+</script>
+""", height=0)
             with result_slot.container():
                 st.markdown(
                     '<div style="text-align:center;padding:18px 0 14px;">'
