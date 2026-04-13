@@ -150,25 +150,25 @@ def validate_excel(file_bytes) -> list:
     try:
         df_raw = pd.read_excel(io.BytesIO(file_bytes), header=0)
     except Exception as e:
-        return [f'Excelファイルの読み込みに失敗しました：{e}']
+        return [f'Excelファイルが読み込めなかったよ…：{e}']
 
     # ── データ行数チェック ────────────────────────────────────────
     if len(df_raw) == 0:
-        errors.append('データが1件もありません。ヘッダー行のみのファイルの可能性があります。')
+        errors.append('データが1件もないよ！ヘッダー行だけのファイルかも？')
         return errors  # 以降のチェックは意味がないので早期リターン
 
     # ── 必須列チェック ────────────────────────────────────────────
     missing = [col for col in REQUIRED_COLS if col not in df_raw.columns]
     if missing:
-        errors.append(f'以下の列が見つかりません：{", ".join(missing)}')
+        errors.append(f'以下の列が見つからないよっ：{", ".join(missing)}')
 
     # ── 1列目（大学名列）チェック ─────────────────────────────────
     first_col_vals = df_raw.iloc[:, 0].astype(str).str.strip()
     non_empty = first_col_vals[~first_col_vals.isin(['', 'nan', 'NaN'])]
     if len(non_empty) == 0:
         errors.append(
-            '1列目に大学名が入力されていません。'
-            '「使い方」の手順③を確認してください。'
+            '1列目に大学名が入ってないよ！'
+            '「使い方」の手順③を見てね。'
         )
 
     return errors

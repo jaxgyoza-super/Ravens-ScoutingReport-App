@@ -1082,7 +1082,7 @@ with col1:
                     f'<div style="background:#FFF5F5;border-radius:12px;border:1px solid #FFCDD2;'
                     f'padding:14px 16px;margin-top:8px;">'
                     f'<div style="font-size:11px;font-weight:800;color:#D32F2F;'
-                    f'margin-bottom:8px;">⚠️ ファイル形式エラー</div>'
+                    f'margin-bottom:8px;">⚠️ ちょっと待って！</div>'
                     + ''.join(
                         f'<div style="font-size:10px;color:#C62828;line-height:1.7;'
                         f'padding-left:8px;">• {e}</div>'
