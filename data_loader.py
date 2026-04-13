@@ -2,10 +2,15 @@ import pandas as pd
 import re
 
 COMPONENT_MAP = {
-    'FS BUZZ': 'SILVER',
-    'FS SKY': 'GREEN',
-    'R BUZZ': 'GOLD',
-    'R SKY': 'YELLOW',
+    'FS BUZZ': 'FS Buzz',
+    'FS SKY':  'FS Sky',
+    'R BUZZ':  'R Buzz',
+    'R SKY':   'R Sky',
+    # レガシー表記（旧マッピング名が残っている場合も統一）
+    'SILVER':  'FS Buzz',
+    'GREEN':   'FS Sky',
+    'GOLD':    'R Buzz',
+    'YELLOW':  'R Sky',
 }
 
 
@@ -67,10 +72,57 @@ def load_data(uploaded_file):
     )
     df.loc[df['OFF_FORM_NORM'].str.lower() == 'nan', 'OFF_FORM_NORM'] = ''
 
-    # --- DEF FRONT / SIGN(D) クリーニング ---
-    for src, dst in [('DEF FRONT', 'DEF_FRONT'), ('SIGN(D)', 'SIGN_D')]:
+    # --- DEF FRONT / SIGN(D) / BLITZ クリーニング ---
+    for src, dst in [('DEF FRONT', 'DEF_FRONT'), ('SIGN(D)', 'SIGN_D'), ('BLITZ', 'BLITZ_CLEAN')]:
         df[dst] = df[src].astype(str).str.strip()
         df.loc[df[dst].str.lower() == 'nan', dst] = ''
+
+    # --- PRESSURE 数値化 ---
+    df['PRESSURE_NUM'] = pd.to_numeric(df['PRESSURE'], errors='coerce')
+
+    # --- PERSONNEL 正規化（10.0 → '10' など）---
+    def norm_personnel(v):
+        s = str(v).strip()
+        if s.lower() == 'nan' or s == '':
+            return ''
+        return re.sub(r'\.0$', '', s)
+
+    df['PERSONNEL_NORM'] = df['PERSONNEL'].apply(norm_personnel)
+
+    # --- HASH / OFFSTR / BACKFIELD 正規化 ---
+    def _clean(v):
+        s = str(v).strip().upper()
+        return '' if s in ('NAN', '') else s
+
+    # 列が存在しない場合は空文字列で補完
+    for raw, norm in [('HASH', 'HASH_NORM'), ('OFF STR', 'OFFSTR_NORM'), ('BACKFIELD', 'BACKFIELD_NORM')]:
+        if raw in df.columns:
+            df[norm] = df[raw].apply(_clean)
+        else:
+            df[norm] = ''
+
+    # --- RB_WIDE_SIDE 派生列 ---
+    # 広い側: HASH=L → 右(R)が広い、HASH=R → 左(L)が広い
+    # BACKFIELD=ST → RBはOFFSTRと同じ側、WE → 逆側、PISTOL → QB後ろ、空白 → RBなし
+    def calc_rb_wide(row):
+        h = row['HASH_NORM']
+        o = row['OFFSTR_NORM']
+        b = row['BACKFIELD_NORM']
+        if not b:
+            return 'なし'
+        if b == 'PISTOL':
+            return 'PISTOL'
+        if not h or not o:
+            return ''
+        wide = 'R' if h == 'L' else ('L' if h == 'R' else '')
+        if not wide:
+            return ''
+        rb_side = o if b == 'ST' else ('R' if o == 'L' else 'L')
+        if rb_side == wide:
+            return '広い'
+        return '狭い'
+
+    df['RB_WIDE_SIDE'] = df.apply(calc_rb_wide, axis=1)
 
     return df
 
