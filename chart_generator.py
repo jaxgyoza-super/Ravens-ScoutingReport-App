@@ -27,10 +27,9 @@ def _setup_jp_font():
     # 1. japanize_matplotlib のフォントファイルを探してパス直指定
     try:
         import japanize_matplotlib as _jm
-        import os as _o
-        _fonts_dir = _o.join(_o.dirname(_jm.__file__), 'fonts')
+        _fonts_dir = _os.path.join(_os.path.dirname(_jm.__file__), 'fonts')
         _ttf = next(
-            (_o.join(_fonts_dir, f) for f in sorted(_o.listdir(_fonts_dir))
+            (_os.path.join(_fonts_dir, f) for f in sorted(_os.listdir(_fonts_dir))
              if f.endswith('.ttf')),
             None,
         )
