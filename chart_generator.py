@@ -105,18 +105,34 @@ def _text_color(bg_hex: str) -> str:
 
 
 def _wrap_val(text: str) -> str:
-    """' + ' 区切りの複合値を '＋' を独立行として折り返す。
-    例: '狭N-T + 3人外クロス' → '狭N-T\n＋\n3人外クロス'
-    単一値（' + ' なし）はそのまま返す。
+    """' + ' 区切りの複合値を折り返す。
+    - 結合後が8文字以内 → 1行: 'SL＋広RIP'
+    - 2パーツで長い場合 → 短い方に＋を付けて改行: '外クロス＋\nLB中ブリッツ'
+    - 3パーツ以上 → 先頭＋改行で再帰
     """
     if ' + ' not in text:
         return text
-    return text.replace(' + ', '\n＋\n')
+    parts = text.split(' + ')
+    joined = '＋'.join(parts)
+    if len(joined) <= 8:
+        return joined
+    if len(parts) == 2:
+        a, b = parts
+        short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+        return short + '＋\n' + long_
+    # 3パーツ以上：先頭を出して残りを再帰
+    head = parts[0]
+    tail = _wrap_val(' + '.join(parts[1:]))
+    return head + '＋\n' + tail
 
 
 def _val_fontsize(text: str) -> int:
-    """折り返し後の最長行文字数に応じてフォントサイズを決定"""
-    max_len = max(len(line) for line in text.split('\n'))
+    """折り返し後の各パーツの最長文字数に応じてフォントサイズを決定。
+    ＋記号自体はサイズ計算から除外する。
+    """
+    import re as _re
+    parts = [p for p in _re.split(r'[\n＋]', text) if p]
+    max_len = max(len(p) for p in parts) if parts else len(text)
     if max_len <= 2:  return 48
     if max_len <= 4:  return 42
     if max_len <= 6:  return 36
@@ -243,9 +259,9 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
 
                     if allvals:
                         # ── 縦並び表示（セル合計n≤2プレー）※なし ──────
-                        # _wrap_val は使わない：複合SIGN値("A+B")を改行すると
-                        # 別々のSIGNに見えてしまうため、1値1行で表示する
                         n_items = len(allvals)
+                        # フォントサイズ：項目数に応じて調整（複合値でも縮小しない）
+                        fs_stack = max(30, 44 - (n_items - 1) * 6)
                         # Y位置：下部に「(全Nプレー)」用のスペースを確保
                         bottom_label_h = CH * 0.18
                         margin = CH * 0.10
@@ -254,10 +270,9 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                             frac = (i + 0.5) / n_items
                             yp = y + bottom_label_h + usable * (1.0 - frac)
                             av_text = _wrap_val(str(av))
-                            av_fs = max(18, _val_fontsize(av_text))
                             ax.text(ci * CW + CW / 2, yp, av_text,
                                     ha='center', va='center',
-                                    fontsize=av_fs, fontweight='bold',
+                                    fontsize=fs_stack, fontweight='bold',
                                     color=tc, zorder=3, linespacing=1.1)
                         # 下部に合計プレー数を表示
                         ax.text(ci * CW + CW / 2, y + CH * 0.08,
