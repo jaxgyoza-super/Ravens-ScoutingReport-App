@@ -15,31 +15,24 @@ import matplotlib.cm as mcm
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-# フォント選択：最初の描画時に1回だけ実行（起動遅延を防ぐ）
-_FONT_FAMILY = None
-
-def _ensure_font():
-    global _FONT_FAMILY
-    if _FONT_FAMILY is not None:
-        return
-    # まず japanize-matplotlib を試みる（Linux/Cloud 環境向け）
-    try:
-        import japanize_matplotlib  # noqa: F401
-        _FONT_FAMILY = matplotlib.rcParams['font.family']
-        if isinstance(_FONT_FAMILY, list):
-            _FONT_FAMILY = _FONT_FAMILY[0]
-        return
-    except ImportError:
-        pass
+# 日本語フォント設定（モジュールロード時に1回実行）
+try:
+    import japanize_matplotlib  # Linux/Streamlit Cloud 向け（IPAexGothic を自動登録）
+    _FONT_FAMILY = 'IPAexGothic'
+except ImportError:
     # Windows 環境：インストール済み日本語フォントを検索
-    available = {f.name for f in fm.fontManager.ttflist}
-    for font in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
-        if font in available:
-            _FONT_FAMILY = font
+    _available = {f.name for f in fm.fontManager.ttflist}
+    for _f in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
+        if _f in _available:
+            _FONT_FAMILY = _f
             break
     else:
         _FONT_FAMILY = 'sans-serif'
     matplotlib.rcParams['font.family'] = _FONT_FAMILY
+
+def _ensure_font():
+    """後方互換のため残す（処理はモジュールロード時に完了済み）"""
+    pass
 
 
 # ── カラー定数 ─────────────────────────────────────────────────
@@ -211,7 +204,8 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_red + RZH / 2, '敵陣Endzone',
                     ha='center', va='center', fontsize=50,
-                    color='#0000cc', fontweight='bold', zorder=3)
+                    color='#0000cc', fontweight='bold', zorder=3,
+                    fontfamily=_FONT_FAMILY)
         else:
             # 通常モード：Redzone（緑）
             for ci in range(nc):
@@ -223,7 +217,8 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_red + RZH / 2, 'Redzone',
                     ha='center', va='center', fontsize=50,
-                    color='#006600', fontweight='bold', zorder=3)
+                    color='#006600', fontweight='bold', zorder=3,
+                    fontfamily=_FONT_FAMILY)
 
         # ── データセル ─────────────────────────────────────────
         for ri_disp in range(nr):
@@ -264,12 +259,14 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                             ax.text(ci * CW + CW / 2, yp, wrapped_av,
                                     ha='center', va='center',
                                     fontsize=fs_stack, fontweight='bold',
-                                    color=tc, zorder=3, linespacing=1.2)
+                                    color=tc, zorder=3, linespacing=1.2,
+                                    fontfamily=_FONT_FAMILY)
                         # 下部に合計プレー数を表示
                         ax.text(ci * CW + CW / 2, y + CH * 0.08,
                                 f'(全{n}プレー)',
                                 ha='center', va='center',
-                                fontsize=28, color=tc, zorder=3)
+                                fontsize=28, color=tc, zorder=3,
+                                fontfamily=_FONT_FAMILY)
                     else:
                         # ── 通常表示 ────────────────────────────────────
                         wrapped = _wrap_val(str(val))
@@ -298,11 +295,13 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                         ax.text(ci * CW + CW / 2, top_y, wrapped,
                                 ha='center', va='center',
                                 fontsize=fs, fontweight='bold', color=tc,
-                                zorder=3, linespacing=1.3)
+                                zorder=3, linespacing=1.3,
+                                fontfamily=_FONT_FAMILY)
                         ax.text(ci * CW + CW / 2, cnt_y,
                                 f'({val_n}/{n})',
                                 ha='center', va='center',
-                                fontsize=36, color=tc, zorder=3)
+                                fontsize=36, color=tc, zorder=3,
+                                fontfamily=_FONT_FAMILY)
 
                         # タイ：※N を右下に小字表示
                         if has_others:
@@ -310,11 +309,12 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                                     f'※{nid}',
                                     ha='right', va='bottom',
                                     fontsize=38, color=tc, alpha=0.90,
-                                    zorder=3)
+                                    zorder=3, fontfamily=_FONT_FAMILY)
                 else:
                     ax.text(ci * CW + CW / 2, y + CH / 2, '─',
                             ha='center', va='center',
-                            fontsize=48, color='#aaaaaa', zorder=3)
+                            fontsize=48, color='#aaaaaa', zorder=3,
+                            fontfamily=_FONT_FAMILY)
 
         # ── 自陣 END ZONE（redzone_mode では非表示）─────────────
         if redzone_mode:
@@ -330,7 +330,8 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_end + EZH / 2, '自陣Endzone',
                     ha='center', va='center', fontsize=50,
-                    color='#006600', fontweight='bold', zorder=3)
+                    color='#006600', fontweight='bold', zorder=3,
+                    fontfamily=_FONT_FAMILY)
 
         # ── 区切り線 ───────────────────────────────────────────
         for i in range(nr + 1):
@@ -342,7 +343,7 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
             ax.text(nc * CW + PAD * 2, HALFWAY_Y, '← ハーフ',
                     ha='left', va='center', fontsize=41,
                     color='#000000', fontweight='bold', zorder=6,
-                    clip_on=False)
+                    clip_on=False, fontfamily=_FONT_FAMILY)
 
         # ── 軸設定 ─────────────────────────────────────────────
         ax.set_xlim(0, nc * CW)
@@ -350,14 +351,14 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
 
         ax.set_xticks([(ci + 0.5) * CW for ci in range(nc)])
         ax.set_xticklabels(col_labels, fontsize=42, color='#222222',
-                           multialignment='center')
+                           multialignment='center', fontfamily=_FONT_FAMILY)
         ax.xaxis.set_label_position('top')
         ax.xaxis.tick_top()
         ax.tick_params(axis='x', colors='#222222', length=0, pad=6)
 
         ax.set_yticks([(nr - 0.5 - i) * CH for i in range(nr)])
         ax.set_yticklabels(row_labels_disp, fontsize=39, color='#222222',
-                           multialignment='center')
+                           multialignment='center', fontfamily=_FONT_FAMILY)
         ax.tick_params(axis='y', colors='#222222', length=0, pad=6)
 
         for spine in ax.spines.values():
@@ -365,10 +366,11 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
             spine.set_linewidth(1.0)
 
         ax.set_title(METRIC_TITLES[metric_key], fontsize=52,
-                     fontweight='bold', color='#111111', pad=36)
+                     fontweight='bold', color='#111111', pad=36,
+                     fontfamily=_FONT_FAMILY)
 
     fig.suptitle(situation_label, fontsize=54, fontweight='bold',
-                 color='#111111', y=0.99)
+                 color='#111111', y=0.99, fontfamily=_FONT_FAMILY)
 
     # tight_layout の代わりに固定余白（canvas.draw() 不要）
     fig.subplots_adjust(left=0.10, right=0.92, top=0.87, bottom=0.05,
