@@ -20,15 +20,26 @@ _FONT_FAMILY = None
 
 def _ensure_font():
     global _FONT_FAMILY
-    if _FONT_FAMILY is None:
-        available = {f.name for f in fm.fontManager.ttflist}
-        for font in ('Yu Gothic', 'Meiryo', 'MS Gothic'):
-            if font in available:
-                _FONT_FAMILY = font
-                break
-        else:
-            _FONT_FAMILY = 'sans-serif'
-        matplotlib.rcParams['font.family'] = _FONT_FAMILY
+    if _FONT_FAMILY is not None:
+        return
+    # まず japanize-matplotlib を試みる（Linux/Cloud 環境向け）
+    try:
+        import japanize_matplotlib  # noqa: F401
+        _FONT_FAMILY = matplotlib.rcParams['font.family']
+        if isinstance(_FONT_FAMILY, list):
+            _FONT_FAMILY = _FONT_FAMILY[0]
+        return
+    except ImportError:
+        pass
+    # Windows 環境：インストール済み日本語フォントを検索
+    available = {f.name for f in fm.fontManager.ttflist}
+    for font in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
+        if font in available:
+            _FONT_FAMILY = font
+            break
+    else:
+        _FONT_FAMILY = 'sans-serif'
+    matplotlib.rcParams['font.family'] = _FONT_FAMILY
 
 
 # ── カラー定数 ─────────────────────────────────────────────────
