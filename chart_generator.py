@@ -17,36 +17,42 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 import os as _os
 
-def _build_font_prop() -> fm.FontProperties:
-    """
-    日本語 FontProperties を確実に返す。
-    優先順:
-      1. japanize_matplotlib が同梱する ipaexg.ttf をパス直指定
-      2. Windows 系インストール済みフォント（名前指定）
-      3. フォールバック（文字化けする可能性あり）
-    """
-    # ── japanize_matplotlib の TTF をパスで直接ロード ──────────
+# ── 日本語フォント設定 ─────────────────────────────────────────
+# japanize_matplotlib の TTF パスを直接取得して FontProperties を構築。
+# rcParams も同時に設定するため set_title / suptitle も自動で日本語になる。
+_JP_FONT = None   # ax.text / tick labels 用 FontProperties
+
+def _setup_jp_font():
+    global _JP_FONT
+    # 1. japanize_matplotlib のフォントファイルを探してパス直指定
     try:
         import japanize_matplotlib as _jm
-        _jm_dir = _os.path.dirname(_jm.__file__)
-        _fonts_dir = _os.path.join(_jm_dir, 'fonts')
-        if _os.path.isdir(_fonts_dir):
-            for _fn in sorted(_os.listdir(_fonts_dir)):
-                if _fn.endswith('.ttf'):
-                    _path = _os.path.join(_fonts_dir, _fn)
-                    fm.fontManager.addfont(_path)
-                    return fm.FontProperties(fname=_path)
+        import os as _o
+        _fonts_dir = _o.join(_o.dirname(_jm.__file__), 'fonts')
+        _ttf = next(
+            (_o.join(_fonts_dir, f) for f in sorted(_o.listdir(_fonts_dir))
+             if f.endswith('.ttf')),
+            None,
+        )
+        if _ttf:
+            fm.fontManager.addfont(_ttf)
+            _prop = fm.FontProperties(fname=_ttf)
+            _name = _prop.get_name()
+            matplotlib.rcParams['font.family'] = [_name, 'sans-serif']
+            _JP_FONT = _prop
+            return
     except Exception:
         pass
-    # ── Windows フォント（名前検索）────────────────────────────
+    # 2. Windows 環境フォールバック
     _available = {f.name for f in fm.fontManager.ttflist}
     for _name in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
         if _name in _available:
-            return fm.FontProperties(family=_name)
-    return fm.FontProperties()
+            matplotlib.rcParams['font.family'] = [_name, 'sans-serif']
+            _JP_FONT = fm.FontProperties(family=_name)
+            return
+    _JP_FONT = fm.FontProperties()
 
-# モジュールロード時に1回だけ構築
-_JP_FONT = _build_font_prop()
+_setup_jp_font()
 
 def _ensure_font():
     """後方互換のため残す"""
@@ -390,11 +396,10 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
             spine.set_linewidth(1.0)
 
         ax.set_title(METRIC_TITLES[metric_key], fontsize=52,
-                     fontweight='bold', color='#111111', pad=36,
-                     fontproperties=_JP_FONT)
+                     fontweight='bold', color='#111111', pad=36)
 
     fig.suptitle(situation_label, fontsize=54, fontweight='bold',
-                 color='#111111', y=0.99, fontproperties=_JP_FONT)
+                 color='#111111', y=0.99)
 
     # tight_layout の代わりに固定余白（canvas.draw() 不要）
     fig.subplots_adjust(left=0.10, right=0.92, top=0.87, bottom=0.05,
