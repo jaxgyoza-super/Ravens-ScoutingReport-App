@@ -105,21 +105,13 @@ def _text_color(bg_hex: str) -> str:
 
 
 def _wrap_val(text: str) -> str:
-    """8文字超の場合、+ で折り返して複数行に"""
-    if len(text) <= 8 or '+' not in text:
+    """' + ' 区切りの複合値を '＋' を独立行として折り返す。
+    例: '狭N-T + 3人外クロス' → '狭N-T\n＋\n3人外クロス'
+    単一値（' + ' なし）はそのまま返す。
+    """
+    if ' + ' not in text:
         return text
-    parts = text.split('+')
-    lines, cur = [], ''
-    for p in parts:
-        candidate = cur + ('+' if cur else '') + p
-        if len(candidate) > 9 and cur:
-            lines.append(cur)
-            cur = p
-        else:
-            cur = candidate
-    if cur:
-        lines.append(cur)
-    return '\n'.join(lines)
+    return text.replace(' + ', '\n＋\n')
 
 
 def _val_fontsize(text: str) -> int:
@@ -261,13 +253,12 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                         for i, (av, ac) in enumerate(allvals):
                             frac = (i + 0.5) / n_items
                             yp = y + bottom_label_h + usable * (1.0 - frac)
-                            av_text = str(av)
-                            # 文字数に応じてフォントサイズを決定（改行なし）
+                            av_text = _wrap_val(str(av))
                             av_fs = max(18, _val_fontsize(av_text))
                             ax.text(ci * CW + CW / 2, yp, av_text,
                                     ha='center', va='center',
                                     fontsize=av_fs, fontweight='bold',
-                                    color=tc, zorder=3)
+                                    color=tc, zorder=3, linespacing=1.1)
                         # 下部に合計プレー数を表示
                         ax.text(ci * CW + CW / 2, y + CH * 0.08,
                                 f'(全{n}プレー)',
