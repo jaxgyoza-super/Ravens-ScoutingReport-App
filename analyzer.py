@@ -3,36 +3,63 @@ import re
 
 # ── SIGN / BLITZ 表示名変換 ──────────────────────────────────
 _SIGN_EXACT = {
-    'FO':  '広RIP',
-    'N':   'read',
-    'MB':  'LB中ブリッツ',
-    'CS':      'クロス',
+    'FO':      '広RIP',
+    'N':       'read',
+    'MB':      'LB中ブリッツ',
+    'CS':      'DLクロス',
     'BOTH.A':  '両A-LB Blitz',
-    'OSC': '外クロス',
-    'OCS': '外クロス',
-    'ISC': '中クロス',
-    'ICS': '中クロス',
-    'TO':  'Tアウチャ',
-    'EI':  'Eインチャ',
+    'OSC':     '外クロス',
+    'OCS':     '外クロス',
+    'ISC':     '中クロス',
+    'ICS':     '中クロス',
+    'TO':      'Tアウチャ',
+    'EI':      'Eインチャ',
+    'BO':      '狭外Blitz',
 }
-# F/B + A/B gap + LB種別 パターン
+# N人DLクロス: 4CS / CS4 など
+_NUM_CS_RE      = re.compile(r'^(\d+)CS$|^CS(\d+)$', re.IGNORECASE)
+# N人外クロス: OSC3 / OCS3 など（数字なしは _SIGN_EXACT で処理済み）
+_OUTER_CROSS_RE = re.compile(r'^(?:OSC|OCS)(\d+)$', re.IGNORECASE)
+# N人中クロス: ISC3 / ICS3 など
+_INNER_CROSS_RE = re.compile(r'^(?:ISC|ICS)(\d+)$', re.IGNORECASE)
+# F/B + A/B gap + LB種別 パターン（既存の詳細パターン）
 # 例: F.A-M → 広A-Mike Blitz、B.B-FS → 狭B-FS Blitz
-_FB_GAP_RE  = re.compile(r'^(F|B)\.(A|B)-(M|W|FS|S)$')
-_LB_NAMES   = {'M': 'Mike', 'W': 'Willy', 'FS': 'FS', 'S': 'Sam'}
-_MB_NUM_RE  = re.compile(r'^MB(\d+)$')
+_FB_GAP_RE      = re.compile(r'^(F|B)\.(A|B)-(M|W|FS|S)$')
+# 汎用 B./F. プレフィックス: B.N-T → 狭N-T、F.E-T → 広E-T
+_FB_PREFIX_RE   = re.compile(r'^(F|B)\.(.+)$')
+_LB_NAMES       = {'M': 'Mike', 'W': 'Willy', 'FS': 'FS', 'S': 'Sam'}
+_MB_NUM_RE      = re.compile(r'^MB(\d+)$')
 
 def _sign_token(t: str) -> str:
     """SIGN/BLITZ の単一トークンを表示名に変換"""
     t = t.strip()
     if t in _SIGN_EXACT:
         return _SIGN_EXACT[t]
-    # F/B・A/B gap パターン
+    # N人DLクロス: 4CS / CS4
+    m = _NUM_CS_RE.match(t)
+    if m:
+        n = m.group(1) or m.group(2)
+        return f'{n}人DLクロス'
+    # N人外クロス: OSC3 / OCS3
+    m = _OUTER_CROSS_RE.match(t)
+    if m:
+        return f'{m.group(1)}人外クロス'
+    # N人中クロス: ISC3 / ICS3
+    m = _INNER_CROSS_RE.match(t)
+    if m:
+        return f'{m.group(1)}人中クロス'
+    # F/B・A/B gap + LB 詳細パターン（広A-Mike Blitz 等）
     m = _FB_GAP_RE.match(t)
     if m:
         width = '広' if m.group(1) == 'F' else '狭'
-        gap   = m.group(2)           # A or B
+        gap   = m.group(2)
         lb    = _LB_NAMES[m.group(3)]
         return f'{width}{gap}-{lb} Blitz'
+    # 汎用 B./F. プレフィックス: B.N-T → 狭N-T、F.E-T → 広E-T
+    m = _FB_PREFIX_RE.match(t)
+    if m:
+        width = '広' if m.group(1) == 'F' else '狭'
+        return f'{width}{m.group(2)}'
     # MB + 数字
     m = _MB_NUM_RE.match(t)
     if m:
