@@ -378,7 +378,7 @@ def analyze_packages(df):
         parts = pkg.split(' | ')
         rows.append({
             'DEF FRONT': parts[0] if len(parts) > 0 else '',
-            'SIGN':      parts[1] if len(parts) > 1 else '',
+            'SIGN':      sign_display(parts[1]) if len(parts) > 1 else '',
             'COVERAGE':  parts[2] if len(parts) > 2 else '',
             '出現数': cnt,
             '備考（大学・PLAY#）': _notes(sub),

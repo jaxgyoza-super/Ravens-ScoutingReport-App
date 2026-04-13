@@ -251,9 +251,9 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
 
                     if allvals:
                         # ── 縦並び表示（セル合計n≤2プレー）※なし ──────
+                        # _wrap_val は使わない：複合SIGN値("A+B")を改行すると
+                        # 別々のSIGNに見えてしまうため、1値1行で表示する
                         n_items = len(allvals)
-                        # フォントサイズ：項目数に応じて縮小
-                        fs_stack = max(24, 44 - (n_items - 1) * 6)
                         # Y位置：下部に「(全Nプレー)」用のスペースを確保
                         bottom_label_h = CH * 0.18
                         margin = CH * 0.10
@@ -261,12 +261,13 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                         for i, (av, ac) in enumerate(allvals):
                             frac = (i + 0.5) / n_items
                             yp = y + bottom_label_h + usable * (1.0 - frac)
-                            wrapped_av = _wrap_val(str(av))
-                            ax.text(ci * CW + CW / 2, yp, wrapped_av,
+                            av_text = str(av)
+                            # 文字数に応じてフォントサイズを決定（改行なし）
+                            av_fs = max(18, _val_fontsize(av_text))
+                            ax.text(ci * CW + CW / 2, yp, av_text,
                                     ha='center', va='center',
-                                    fontsize=fs_stack, fontweight='bold',
-                                    color=tc, zorder=3, linespacing=1.2,
-)
+                                    fontsize=av_fs, fontweight='bold',
+                                    color=tc, zorder=3)
                         # 下部に合計プレー数を表示
                         ax.text(ci * CW + CW / 2, y + CH * 0.08,
                                 f'(全{n}プレー)',
