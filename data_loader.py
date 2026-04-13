@@ -1,6 +1,13 @@
 import pandas as pd
 import re
 
+# ── バリデーション用定数 ──────────────────────────────────────────
+REQUIRED_COLS = [
+    'DN', 'DIST', 'YARD LN', 'PLAY #', '2 MIN',
+    'COVERAGE', 'COMPONENT', 'OFF FORM', 'DEF FRONT',
+    'SIGN(D)', 'BLITZ', 'PRESSURE', 'PERSONNEL',
+]
+
 COMPONENT_MAP = {
     'FS BUZZ': 'FS Buzz',
     'FS SKY':  'FS Sky',
@@ -129,3 +136,39 @@ def load_data(uploaded_file):
 
 def get_opponents(df):
     return sorted(df['OPPONENT'].unique().tolist())
+
+
+def validate_excel(file_bytes) -> list:
+    """
+    アップロードされた Excel ファイルの形式チェック。
+    エラーメッセージのリストを返す（空リスト = 問題なし）。
+    """
+    import io
+    errors = []
+
+    # ── 読み込みチェック ──────────────────────────────────────────
+    try:
+        df_raw = pd.read_excel(io.BytesIO(file_bytes), header=0)
+    except Exception as e:
+        return [f'Excelファイルの読み込みに失敗しました：{e}']
+
+    # ── データ行数チェック ────────────────────────────────────────
+    if len(df_raw) == 0:
+        errors.append('データが1件もありません。ヘッダー行のみのファイルの可能性があります。')
+        return errors  # 以降のチェックは意味がないので早期リターン
+
+    # ── 必須列チェック ────────────────────────────────────────────
+    missing = [col for col in REQUIRED_COLS if col not in df_raw.columns]
+    if missing:
+        errors.append(f'以下の列が見つかりません：{", ".join(missing)}')
+
+    # ── 1列目（大学名列）チェック ─────────────────────────────────
+    first_col_vals = df_raw.iloc[:, 0].astype(str).str.strip()
+    non_empty = first_col_vals[~first_col_vals.isin(['', 'nan', 'NaN'])]
+    if len(non_empty) == 0:
+        errors.append(
+            '1列目に大学名が入力されていません。'
+            '「使い方」の手順③を確認してください。'
+        )
+
+    return errors

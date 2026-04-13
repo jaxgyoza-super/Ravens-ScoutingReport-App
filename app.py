@@ -380,6 +380,12 @@ def load(file_bytes, file_name):
     return _load_data(io.BytesIO(file_bytes))
 
 
+@st.cache_data
+def validate(file_bytes, file_name):
+    from data_loader import validate_excel as _validate
+    return _validate(file_bytes)
+
+
 # ── 自動考察 条件ダイアログ ───────────────────────────────────
 @st.dialog('自動考察 — 判定条件一覧', width='large')
 def show_conditions_modal():
@@ -1070,18 +1076,34 @@ with col1:
 </html>
 """, height=118, scrolling=False)
         else:
-            st.markdown(
-                f'<div style="background:#F8FAFC;border-radius:12px;border:1px solid #F0F0F0;'
-                f'padding:16px;text-align:center;margin-top:8px;">'
-                f'<div style="font-size:20px;margin-bottom:8px;">📊</div>'
-                f'<div style="font-size:9px;font-weight:700;color:#1A1A1A;'
-                f'word-break:break-all;padding:0 8px;">{uploaded.name}</div>'
-                f'<div style="font-size:7px;font-weight:700;color:#BDBDBD;'
-                f'letter-spacing:0.2em;text-transform:uppercase;margin-top:6px;">'
-                f'{uploaded.size // 1024} KB</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            _val_errors = validate(uploaded.getvalue(), uploaded.name)
+            if _val_errors:
+                st.markdown(
+                    f'<div style="background:#FFF5F5;border-radius:12px;border:1px solid #FFCDD2;'
+                    f'padding:14px 16px;margin-top:8px;">'
+                    f'<div style="font-size:11px;font-weight:800;color:#D32F2F;'
+                    f'margin-bottom:8px;">⚠️ ファイル形式エラー</div>'
+                    + ''.join(
+                        f'<div style="font-size:10px;color:#C62828;line-height:1.7;'
+                        f'padding-left:8px;">• {e}</div>'
+                        for e in _val_errors
+                    )
+                    + f'</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f'<div style="background:#F8FAFC;border-radius:12px;border:1px solid #F0F0F0;'
+                    f'padding:16px;text-align:center;margin-top:8px;">'
+                    f'<div style="font-size:20px;margin-bottom:8px;">📊</div>'
+                    f'<div style="font-size:9px;font-weight:700;color:#1A1A1A;'
+                    f'word-break:break-all;padding:0 8px;">{uploaded.name}</div>'
+                    f'<div style="font-size:7px;font-weight:700;color:#BDBDBD;'
+                    f'letter-spacing:0.2em;text-transform:uppercase;margin-top:6px;">'
+                    f'{uploaded.size // 1024} KB</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
 
 # ────────────────────────────────────────────────────────────
@@ -1173,6 +1195,7 @@ with col3:
 
     is_generated  = 'word_buf' in st.session_state
     is_generating = st.session_state.get('_generating', False)
+    _has_val_error = bool(uploaded and validate(uploaded.getvalue(), uploaded.name))
 
     _sec(4, '解析結果')
 
@@ -1182,7 +1205,7 @@ with col3:
             '▶  START  ANALYSIS',
             type='primary',
             use_container_width=True,
-            disabled=(uploaded is None),
+            disabled=(uploaded is None or _has_val_error),
             key='start_btn',
         ):
             st.session_state['_generating'] = True
