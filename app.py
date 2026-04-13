@@ -6,7 +6,9 @@ import streamlit.components.v1 as components
 
 
 def _notify_pc(title: str, message: str) -> None:
-    """Windows のバルーン通知を表示する（PowerShell 経由、ウィンドウ非表示）"""
+    """Windows のバルーン通知を表示する（PowerShell 経由、ウィンドウ非表示）。非Windows環境では何もしない。"""
+    if os.name != 'nt':
+        return
     ps = (
         'Add-Type -AssemblyName System.Windows.Forms;'
         '$n=New-Object System.Windows.Forms.NotifyIcon;'
