@@ -1213,6 +1213,7 @@ with col3:
                         df_report, situation_opps=_sit_opps, yd_zones=_yd_zones
                     )
                     _notify_pc('Ravens Auto Scout Kit', 'Wordファイルの生成が完了しました')
+                    st.toast('✅ Wordファイルの生成が完了しました', icon='🏈')
             except Exception as _e:
                 import traceback as _tb
                 _gen_error = _tb.format_exc()
