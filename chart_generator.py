@@ -15,43 +15,28 @@ import matplotlib.cm as mcm
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-import os as _os
-
 # ── 日本語フォント設定 ─────────────────────────────────────────
-# japanize_matplotlib の TTF パスを直接取得して FontProperties を構築。
-# rcParams も同時に設定するため set_title / suptitle も自動で日本語になる。
-_JP_FONT = None   # ax.text / tick labels 用 FontProperties
+# リポジトリ同梱の IPAexGothic を直接登録する（OS 問わず確実に動作）
+import os as _os
+_FONT_DIR = _os.path.join(_os.path.dirname(__file__), 'fonts')
+_FONT_PATH = _os.path.join(_FONT_DIR, 'ipaexg.ttf')
 
-def _setup_jp_font():
-    global _JP_FONT
-    # 1. japanize_matplotlib のフォントファイルを探してパス直指定
+if _os.path.isfile(_FONT_PATH):
+    fm.fontManager.addfont(_FONT_PATH)
+    matplotlib.rcParams['font.family'] = 'IPAexGothic'
+else:
+    # フォントファイルが見つからない場合のフォールバック
     try:
-        import japanize_matplotlib as _jm
-        _fonts_dir = _os.path.join(_os.path.dirname(_jm.__file__), 'fonts')
-        _ttf = next(
-            (_os.path.join(_fonts_dir, f) for f in sorted(_os.listdir(_fonts_dir))
-             if f.endswith('.ttf')),
-            None,
-        )
-        if _ttf:
-            fm.fontManager.addfont(_ttf)
-            _prop = fm.FontProperties(fname=_ttf)
-            _name = _prop.get_name()
-            matplotlib.rcParams['font.family'] = [_name, 'sans-serif']
-            _JP_FONT = _prop
-            return
+        import japanize_matplotlib  # noqa: F401
     except Exception:
-        pass
-    # 2. Windows 環境フォールバック
-    _available = {f.name for f in fm.fontManager.ttflist}
-    for _name in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
-        if _name in _available:
-            matplotlib.rcParams['font.family'] = [_name, 'sans-serif']
-            _JP_FONT = fm.FontProperties(family=_name)
-            return
-    _JP_FONT = fm.FontProperties()
+        _available = {f.name for f in fm.fontManager.ttflist}
+        for _fname in ('Yu Gothic', 'Meiryo', 'MS Gothic', 'Hiragino Sans'):
+            if _fname in _available:
+                matplotlib.rcParams['font.family'] = _fname
+                break
 
-_setup_jp_font()
+# minus sign を正しく表示
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 def _ensure_font():
     """後方互換のため残す"""
@@ -227,8 +212,7 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_red + RZH / 2, '敵陣Endzone',
                     ha='center', va='center', fontsize=50,
-                    color='#0000cc', fontweight='bold', zorder=3,
-                    fontproperties=_JP_FONT)
+                    color='#0000cc', fontweight='bold', zorder=3)
         else:
             # 通常モード：Redzone（緑）
             for ci in range(nc):
@@ -240,8 +224,7 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_red + RZH / 2, 'Redzone',
                     ha='center', va='center', fontsize=50,
-                    color='#006600', fontweight='bold', zorder=3,
-                    fontproperties=_JP_FONT)
+                    color='#006600', fontweight='bold', zorder=3)
 
         # ── データセル ─────────────────────────────────────────
         for ri_disp in range(nr):
@@ -283,13 +266,12 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                                     ha='center', va='center',
                                     fontsize=fs_stack, fontweight='bold',
                                     color=tc, zorder=3, linespacing=1.2,
-                                    fontproperties=_JP_FONT)
+)
                         # 下部に合計プレー数を表示
                         ax.text(ci * CW + CW / 2, y + CH * 0.08,
                                 f'(全{n}プレー)',
                                 ha='center', va='center',
-                                fontsize=28, color=tc, zorder=3,
-                                fontproperties=_JP_FONT)
+                                fontsize=28, color=tc, zorder=3)
                     else:
                         # ── 通常表示 ────────────────────────────────────
                         wrapped = _wrap_val(str(val))
@@ -318,13 +300,11 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                         ax.text(ci * CW + CW / 2, top_y, wrapped,
                                 ha='center', va='center',
                                 fontsize=fs, fontweight='bold', color=tc,
-                                zorder=3, linespacing=1.3,
-                                fontproperties=_JP_FONT)
+                                zorder=3, linespacing=1.3)
                         ax.text(ci * CW + CW / 2, cnt_y,
                                 f'({val_n}/{n})',
                                 ha='center', va='center',
-                                fontsize=36, color=tc, zorder=3,
-                                fontproperties=_JP_FONT)
+                                fontsize=36, color=tc, zorder=3)
 
                         # タイ：※N を右下に小字表示
                         if has_others:
@@ -332,12 +312,11 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                                     f'※{nid}',
                                     ha='right', va='bottom',
                                     fontsize=38, color=tc, alpha=0.90,
-                                    zorder=3, fontproperties=_JP_FONT)
+                                    zorder=3)
                 else:
                     ax.text(ci * CW + CW / 2, y + CH / 2, '─',
                             ha='center', va='center',
-                            fontsize=48, color='#aaaaaa', zorder=3,
-                            fontproperties=_JP_FONT)
+                            fontsize=48, color='#aaaaaa', zorder=3)
 
         # ── 自陣 END ZONE（redzone_mode では非表示）─────────────
         if redzone_mode:
@@ -353,8 +332,7 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
                     alpha=0.9, zorder=2))
             ax.text(nc * CW / 2, y_end + EZH / 2, '自陣Endzone',
                     ha='center', va='center', fontsize=50,
-                    color='#006600', fontweight='bold', zorder=3,
-                    fontproperties=_JP_FONT)
+                    color='#006600', fontweight='bold', zorder=3)
 
         # ── 区切り線 ───────────────────────────────────────────
         for i in range(nr + 1):
@@ -366,28 +344,22 @@ def generate_field_heatmap(grid_data: dict, situation_label: str = '', show_colo
             ax.text(nc * CW + PAD * 2, HALFWAY_Y, '← ハーフ',
                     ha='left', va='center', fontsize=41,
                     color='#000000', fontweight='bold', zorder=6,
-                    clip_on=False, fontproperties=_JP_FONT)
+                    clip_on=False)
 
         # ── 軸設定 ─────────────────────────────────────────────
         ax.set_xlim(0, nc * CW)
         ax.set_ylim(y_end, y_red + RZH)
 
         ax.set_xticks([(ci + 0.5) * CW for ci in range(nc)])
-        ax.set_xticklabels(col_labels, multialignment='center')
-        for _tl in ax.get_xticklabels():
-            _tl.set_fontproperties(_JP_FONT)
-            _tl.set_fontsize(42)
-            _tl.set_color('#222222')
+        ax.set_xticklabels(col_labels, fontsize=42, color='#222222',
+                           multialignment='center')
         ax.xaxis.set_label_position('top')
         ax.xaxis.tick_top()
         ax.tick_params(axis='x', colors='#222222', length=0, pad=6)
 
         ax.set_yticks([(nr - 0.5 - i) * CH for i in range(nr)])
-        ax.set_yticklabels(row_labels_disp, multialignment='center')
-        for _tl in ax.get_yticklabels():
-            _tl.set_fontproperties(_JP_FONT)
-            _tl.set_fontsize(39)
-            _tl.set_color('#222222')
+        ax.set_yticklabels(row_labels_disp, fontsize=39, color='#222222',
+                           multialignment='center')
         ax.tick_params(axis='y', colors='#222222', length=0, pad=6)
 
         for spine in ax.spines.values():
