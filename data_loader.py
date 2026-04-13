@@ -163,9 +163,26 @@ def validate_excel(file_bytes) -> list:
         errors.append(f'以下の列が見つからないよっ：{", ".join(missing)}')
 
     # ── 1列目（大学名列）チェック ─────────────────────────────────
+    # NG パターン：
+    #   ① 1列目ヘッダーが既存のデータ列名（大学名列を追加し忘れ）
+    #   ② 1列目の値が全部空
+    #   ③ 1列目の値が全部数値（PLAY # などの数字が入っている）
+    first_col_name = str(df_raw.columns[0]).strip()
     first_col_vals = df_raw.iloc[:, 0].astype(str).str.strip()
     non_empty = first_col_vals[~first_col_vals.isin(['', 'nan', 'NaN'])]
-    if len(non_empty) == 0:
+
+    def _all_numeric(series):
+        def _is_num(s):
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+        return len(series) > 0 and all(_is_num(v) for v in series)
+
+    if (first_col_name in REQUIRED_COLS
+            or len(non_empty) == 0
+            or _all_numeric(non_empty)):
         errors.append(
             '1列目に大学名が入ってないよ！'
             '「使い方」の手順③を見てね。'
