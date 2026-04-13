@@ -1091,7 +1091,7 @@ with col2:
     # ── ② 大学選択 ──────────────────────────────────────────
     h2l, h2r = st.columns([3, 1], vertical_alignment='center')
     with h2l:
-        _sec(2, '大学選択')
+        _sec(2, '大学選択', subtitle='分析に使用する大学を選択します')
     with h2r:
         sel_all = st.button('全選択', key='btn_sel_all', use_container_width=True)
 
